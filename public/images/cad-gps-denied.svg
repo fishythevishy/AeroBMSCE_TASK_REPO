@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <!-- Sensor Frustum / Optical Cone -->
+      <polygon points="240,60 120,200 360,200" fill="#B9B7FF" fill-opacity="0.1" stroke="#B9B7FF" stroke-width="1.5" stroke-dasharray="4 4" />
+      <circle cx="240" cy="60" r="12" stroke="#B9B7FF" stroke-width="2" fill="#15151F" />
+      <circle cx="240" cy="60" r="5" fill="#8888C8" />
+      <text x="240" y="40" font-family="monospace" font-size="8" fill="#F4F2FF" text-anchor="middle">OPTICAL FLOW CAMERA</text>
+      <!-- Feature Tracking Grid -->
+      <circle cx="180" cy="170" r="3" fill="#B9B7FF"/><circle cx="220" cy="185" r="3" fill="#B9B7FF"/>
+      <circle cx="270" cy="165" r="3" fill="#B9B7FF"/><circle cx="310" cy="180" r="3" fill="#B9B7FF"/>
+      <text x="240" y="220" font-family="monospace" font-size="8" fill="#8888C8" text-anchor="middle">FEATURE POINT CORRELATION (ZERO SATELLITE DEPENDENCY)</text>
+      <text x="20" y="30" font-family="monospace" font-size="9" fill="#B9B7FF">GPS-DENIED VISUAL INERTIAL ODOMETRY NAVIGATION</text>
+    </svg>

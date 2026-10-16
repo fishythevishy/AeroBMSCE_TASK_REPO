@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <rect x="150" y="40" width="180" height="160" rx="8" stroke="#B9B7FF" stroke-width="2" fill="#15151F" />
+      <!-- MOSFET Banks -->
+      <rect x="170" y="60" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <rect x="220" y="60" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <rect x="270" y="60" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <rect x="170" y="105" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <rect x="220" y="105" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <rect x="270" y="105" width="40" height="35" rx="3" stroke="#8888C8" fill="#090910" />
+      <text x="240" y="170" font-family="monospace" font-size="9" fill="#F4F2FF" text-anchor="middle">GaN / MOSFET SWITCHING</text>
+      <!-- Phase lines -->
+      <line x1="330" y1="75" x2="380" y2="75" stroke="#B9B7FF" stroke-width="3" />
+      <line x1="330" y1="120" x2="380" y2="120" stroke="#B9B7FF" stroke-width="3" />
+      <line x1="330" y1="165" x2="380" y2="165" stroke="#B9B7FF" stroke-width="3" />
+      <text x="390" y="124" font-family="monospace" font-size="9" fill="#8888C8">3-PHASE MOTOR</text>
+      <text x="20" y="30" font-family="monospace" font-size="9" fill="#B9B7FF">HIGH-EFFICIENCY ELECTRONIC SPEED CONTROLLER (ESC)</text>
+    </svg>

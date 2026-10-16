@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <g stroke="#29263C" stroke-width="1">
+        <line x1="0" y1="40" x2="480" y2="40" stroke-dasharray="4 4" />
+        <line x1="0" y1="120" x2="480" y2="120" stroke-dasharray="4 4" />
+        <line x1="0" y1="200" x2="480" y2="200" stroke-dasharray="4 4" />
+        <line x1="80" y1="0" x2="80" y2="240" stroke-dasharray="4 4" />
+        <line x1="240" y1="0" x2="240" y2="240" stroke-dasharray="4 4" />
+        <line x1="400" y1="0" x2="400" y2="240" stroke-dasharray="4 4" />
+      </g>
+      <g stroke="#B9B7FF" stroke-width="1.8" fill="#15151F" fill-opacity="0.6">
+        <path d="M240 28 L254 65 L254 175 L248 200 L240 205 L232 200 L226 175 L226 65 Z" />
+        <path d="M240 75 L435 110 L432 128 L240 108 L48 128 L45 110 Z" />
+        <polygon points="435,105 442,110 435,132 430,128" fill="#8888C8" />
+        <polygon points="45,105 38,110 45,132 50,128" fill="#8888C8" />
+        <line x1="180" y1="100" x2="180" y2="200" stroke="#8888C8" stroke-width="2.5" />
+        <line x1="300" y1="100" x2="300" y2="200" stroke="#8888C8" stroke-width="2.5" />
+        <polygon points="160,195 320,195 320,208 160,208" fill="#8888C8" fill-opacity="0.5" />
+        <line x1="180" y1="188" x2="180" y2="215" stroke="#B9B7FF" stroke-width="3" />
+        <line x1="300" y1="188" x2="300" y2="215" stroke="#B9B7FF" stroke-width="3" />
+        <line x1="240" y1="15" x2="240" y2="225" stroke="#8888C8" stroke-width="1" stroke-dasharray="5 3" />
+        <circle cx="240" cy="98" r="4" fill="#B9B7FF" stroke="#F4F2FF" stroke-width="1.5" />
+      </g>
+      <text x="240" y="230" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, monospace" font-size="9" fill="#8888C8" letter-spacing="2">AEROBMSCE FIXED-WING UAV BLUEPRINT · PROPEL LAB-3</text>
+    </svg>

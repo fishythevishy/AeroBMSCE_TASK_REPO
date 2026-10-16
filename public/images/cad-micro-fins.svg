@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <rect x="80" y="110" width="320" height="40" rx="8" stroke="#8888C8" stroke-width="2" fill="#15151F" />
+      <!-- Deployable Micro-Fins -->
+      <polygon points="160,110 175,70 185,70 175,110" fill="#B9B7FF" stroke="#F4F2FF" stroke-width="1.5" />
+      <polygon points="300,110 315,70 325,70 315,110" fill="#B9B7FF" stroke="#F4F2FF" stroke-width="1.5" />
+      <text x="240" y="60" font-family="monospace" font-size="9" fill="#B9B7FF" text-anchor="middle">DEPLOYED STABILITY FINS (&lt; 100ms)</text>
+      <text x="240" y="135" font-family="monospace" font-size="9" fill="#8888C8" text-anchor="middle">BOUNDARY LAYER AIRFLOW</text>
+      <text x="20" y="30" font-family="monospace" font-size="9" fill="#B9B7FF">DIRECTIONAL STABILITY ENHANCEMENT VIA DEPLOYABLE FINS</text>
+    </svg>

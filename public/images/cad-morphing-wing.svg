@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <path d="M60 120 L300 120 L360 80 L380 95 L320 135 L60 135 Z" stroke="#B9B7FF" stroke-width="2" fill="#15151F" />
+      <!-- Morphing Dihedral Arc -->
+      <path d="M300 120 Q360 120 380 160" stroke="#8888C8" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+      <path d="M300 120 Q360 120 380 80" stroke="#B9B7FF" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+      <circle cx="300" cy="120" r="6" fill="#F4F2FF" />
+      <text x="300" y="105" font-family="monospace" font-size="8" fill="#B9B7FF" text-anchor="middle">ACTUATED HINGE</text>
+      <text x="20" y="30" font-family="monospace" font-size="9" fill="#B9B7FF">MORPHING WINGTIP MECHANISM // ADAPTIVE DIHEDRAL</text>
+    </svg>

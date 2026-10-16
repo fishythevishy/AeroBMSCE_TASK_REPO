@@ -1,0 +1,251 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #030305;
+    color: #F4F2FF;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Outfit', sans-serif;
+  }
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090910;
+}
+::-webkit-scrollbar-thumb {
+  background: #29263C;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8888C8;
+}
+
+
+/* AeroBMSCE visual finish: cinematic plum, violet and restrained magenta reflections.
+   These are section backgrounds only; the Three.js scene and its canvas styling remain untouched. */
+.aero-gloss-surface {
+  background-image:
+    radial-gradient(ellipse 82% 58% at 8% 4%, rgba(115, 39, 171, 0.34) 0%, rgba(76, 20, 112, 0.15) 35%, transparent 72%),
+    radial-gradient(ellipse 64% 52% at 96% 18%, rgba(135, 42, 163, 0.25) 0%, rgba(83, 27, 111, 0.10) 42%, transparent 72%),
+    radial-gradient(ellipse 70% 55% at 42% 100%, rgba(80, 31, 132, 0.15) 0%, transparent 70%),
+    linear-gradient(118deg, transparent 4%, rgba(188, 130, 255, 0.045) 16%, transparent 31%, rgba(255, 70, 189, 0.035) 54%, transparent 73%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0%, transparent 25%, rgba(39, 13, 62, 0.075) 82%, transparent 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.aero-gloss-panel {
+  background-image:
+    linear-gradient(132deg, rgba(194, 154, 255, 0.085) 0%, rgba(163, 91, 224, 0.035) 24%, transparent 48%, rgba(255, 255, 255, 0.018) 75%, transparent 100%),
+    radial-gradient(ellipse at 0% 0%, rgba(112, 36, 159, 0.16), transparent 58%),
+    radial-gradient(ellipse at 100% 100%, rgba(91, 25, 113, 0.08), transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(237, 225, 255, 0.055), 0 16px 52px rgba(20, 6, 35, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aero-gloss-panel,
+  .aero-gloss-panel * {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Cinematic AeroBMSCE atmosphere: a slow, low-contrast purple light field.
+   This is page-level decoration only; the Three.js aircraft scene is untouched. */
+.aero-gloss-surface {
+  position: relative;
+  isolation: isolate;
+  background-color: #08050d;
+}
+
+.aero-gloss-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 44% 36% at 8% 14%, rgba(128, 43, 188, 0.25) 0%, transparent 74%),
+    radial-gradient(ellipse 48% 40% at 90% 23%, rgba(166, 55, 162, 0.15) 0%, transparent 75%),
+    radial-gradient(ellipse 52% 36% at 54% 98%, rgba(77, 35, 148, 0.19) 0%, transparent 72%),
+    conic-gradient(from 30deg at 50% 50%, transparent 0deg, rgba(177, 103, 238, 0.045) 58deg, transparent 118deg, rgba(217, 87, 184, 0.04) 188deg, transparent 246deg, rgba(129, 83, 218, 0.055) 310deg, transparent 360deg);
+  background-size: 150% 150%, 155% 155%, 160% 160%, 130% 130%;
+  background-position: 0% 0%, 100% 0%, 50% 100%, 0% 50%;
+  opacity: 0.86;
+  animation: aero-atmosphere-drift 34s ease-in-out infinite alternate;
+}
+
+
+@keyframes aero-atmosphere-drift {
+  0% {
+    background-position: 0% 0%, 100% 0%, 50% 100%, 0% 50%;
+    opacity: 0.72;
+  }
+  50% {
+    background-position: 72% 24%, 16% 60%, 70% 24%, 50% 100%;
+    opacity: 0.92;
+  }
+  100% {
+    background-position: 100% 56%, 0% 16%, 12% 0%, 100% 40%;
+    opacity: 0.78;
+  }
+}
+
+/* Float-card system: perspective tilt comes from the App's delegated pointer listener.
+   The moving specular layer is an inexpensive shader-like CSS highlight, not ray tracing. */
+.aero-float-card {
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  transform: perspective(1150px) rotateX(var(--aero-tilt-x, 0deg)) rotateY(var(--aero-tilt-y, 0deg)) translateZ(0);
+  transform-origin: center center;
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+              translate 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 260ms ease, border-color 260ms ease;
+  box-shadow: 0 10px 28px rgba(3, 1, 8, 0.24),
+              inset 0 1px 0 rgba(246, 237, 255, 0.055);
+  backface-visibility: hidden;
+}
+
+.aero-float-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(280px circle at var(--aero-shine-x, 50%) var(--aero-shine-y, 0%), rgba(211, 177, 255, 0.21), transparent 68%),
+    linear-gradient(118deg, rgba(255, 255, 255, 0.055) 0%, transparent 27%, rgba(174, 103, 232, 0.055) 62%, transparent 82%);
+  mix-blend-mode: screen;
+  transition: opacity 220ms ease;
+}
+
+.aero-float-card:hover,
+.aero-float-card:focus-within {
+  translate: 0 -4px;
+  border-color: rgba(173, 126, 229, 0.58);
+  box-shadow: 0 24px 54px rgba(4, 1, 12, 0.42),
+              0 0 0 1px rgba(172, 126, 229, 0.12),
+              0 0 32px rgba(120, 56, 174, 0.11),
+              inset 0 1px 0 rgba(246, 237, 255, 0.11);
+}
+
+.aero-float-card:hover::after,
+.aero-float-card:focus-within::after,
+.aero-float-card[data-aero-pointer="true"]::after {
+  opacity: 0.9;
+}
+
+.aero-float-card--soft {
+  box-shadow: 0 8px 22px rgba(3, 1, 8, 0.2), inset 0 1px 0 rgba(246, 237, 255, 0.045);
+}
+.aero-float-card--soft:hover,
+.aero-float-card--soft:focus-within {
+  translate: 0 -3px;
+  box-shadow: 0 18px 36px rgba(4, 1, 12, 0.34),
+              0 0 24px rgba(120, 56, 174, 0.09),
+              inset 0 1px 0 rgba(246, 237, 255, 0.09);
+}
+.aero-float-card--soft::after { opacity: 0; }
+.aero-float-card--soft:hover::after,
+.aero-float-card--soft:focus-within::after,
+.aero-float-card--soft[data-aero-pointer="true"]::after { opacity: 0.58; }
+
+.aero-float-card--subtle:hover,
+.aero-float-card--subtle:focus-within {
+  translate: 0 -2px;
+  box-shadow: 0 18px 42px rgba(4, 1, 12, 0.3),
+              0 0 26px rgba(120, 56, 174, 0.075),
+              inset 0 1px 0 rgba(246, 237, 255, 0.08);
+}
+
+/* Respect touch devices and people who prefer reduced motion. */
+@media (hover: none), (max-width: 767px) {
+  .aero-float-card {
+    transform: none !important;
+    transition: box-shadow 220ms ease, border-color 220ms ease;
+  }
+  .aero-float-card:hover,
+  .aero-float-card:focus-within { translate: 0 -1px; }
+  .aero-float-card::after { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aero-gloss-surface::before { animation: none !important; }
+  .aero-float-card,
+  .aero-float-card:hover,
+  .aero-float-card:focus-within {
+    transform: none !important;
+    translate: none !important;
+    transition: none !important;
+  }
+  .aero-float-card::after { display: none; }
+}
+
+/* Isolated stage-aware 3D fabrication workbench. These rules apply only to the new viewport. */
+.workbench-3d-stage {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 52% 42%, rgba(100, 60, 146, 0.15), transparent 58%),
+    #090611;
+  touch-action: pan-y;
+}
+.workbench-3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  cursor: grab;
+  touch-action: none;
+}
+.workbench-3d-canvas:active { cursor: grabbing; }
+.workbench-tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  min-height: 29px;
+  border: 1px solid rgba(160, 125, 205, 0.22);
+  border-radius: 6px;
+  padding: 0.38rem 0.55rem;
+  background: rgba(19, 11, 29, 0.8);
+  color: #B9A9D2;
+  font: 500 10px/1.2 'JetBrains Mono', monospace;
+  letter-spacing: 0.015em;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.workbench-tool-button:hover,
+.workbench-tool-button:focus-visible {
+  border-color: rgba(190, 163, 255, 0.7);
+  color: #F7F1FF;
+  outline: none;
+}
+.workbench-tool-button.is-active {
+  border-color: rgba(190, 163, 255, 0.75);
+  background: rgba(185, 160, 255, 0.16);
+  color: #E9DEFF;
+}
+.workbench-tool-button:focus-visible { box-shadow: 0 0 0 2px rgba(185, 160, 255, 0.22); }
+@media (max-width: 640px) {
+  .workbench-3d-stage { min-height: 360px; }
+  .workbench-tool-button { min-height: 32px; padding: 0.42rem 0.48rem; font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workbench-tool-button { transition: none; }
+}

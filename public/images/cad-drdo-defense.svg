@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" fill="none">
+      <rect width="480" height="240" fill="#090910" />
+      <rect x="120" y="40" width="240" height="160" rx="8" stroke="#B9B7FF" stroke-width="1.5" fill="#15151F" />
+      <circle cx="240" cy="100" r="35" stroke="#8888C8" stroke-width="2" fill="#090910" />
+      <polygon points="240,75 258,115 240,105 222,115" fill="#B9B7FF" />
+      <text x="240" y="155" font-family="monospace" font-size="10" fill="#F4F2FF" font-weight="bold" text-anchor="middle">DRDO ACADEMIC COLLABORATION</text>
+      <text x="240" y="172" font-family="monospace" font-size="8" fill="#8888C8" text-anchor="middle">DETAILS RESTRICTED UNDER DEFENCE NDA</text>
+      <text x="20" y="30" font-family="monospace" font-size="9" fill="#B9B7FF">CONFIDENTIAL DEFENCE AEROSPACE RESEARCH TRACK</text>
+    </svg>
