@@ -86,11 +86,11 @@ export default function App() {
         {/* 1. Hero with Real Interactive Three.js Aircraft & 3D Flight Path */}
         <HeroSection />
 
-        {/* 2. Organizational Foundation & The 4 Specialized Squads */}
-        <AboutSection />
-
-        {/* 3. Engineering Philosophy (Imagine → Design → Build → Test → Improve) */}
+        {/* 2. Scroll-driven S-curve story panels; content is drawn from existing project data */}
         <ScrollStorySection />
+
+        {/* 3. Organizational Foundation & The 4 Specialized Squads */}
+        <AboutSection />
 
         {/* 4. Interactive Cardboard Aircraft Workbench */}
         <CardboardWorkbenchSection />

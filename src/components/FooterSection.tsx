@@ -1,5 +1,4 @@
 import React from 'react';
-import { publicAsset } from '../utils/publicAsset';
 import { SafeImage } from './SafeImage';
 import { ArrowRight, Mail, MapPin, Compass, Shield } from 'lucide-react';
 
@@ -79,7 +78,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenContact }) =
           {/* Col 1: Brand & Bio */}
           <div className="lg:col-span-5 space-y-4">
             <img
-              src={publicAsset('/images/header-logo.png')}
+              src="/images/header-logo.png"
               alt="AeroBMSCE Logo"
               className="h-10 w-auto object-contain"
             />

@@ -1,129 +1,134 @@
 # AeroBMSCE Website
 
-A single-page React + TypeScript website for AeroBMSCE, the aerospace student organization at BMS College of Engineering. The project includes a Three.js aircraft hero, stage-aware fabrication workbench, team photography, technical gallery, engineering projects and ecosystem resources.
+A single-page React + TypeScript website for the AeroBMSCE aerospace student organization at BMS College of Engineering. The site includes an interactive Three.js aircraft hero, an interactive fabrication workbench, a team-photo section, a technical gallery, engineering projects, ecosystem tooling and collaboration information.
 
-> **Model and content note:** The hero aircraft and fabrication workbench structures use procedural illustrative geometry. They are not imported CAD assemblies, validated aerodynamic simulations, certification evidence or real-time flight telemetry. Confirm all organizational claims and captions against approved records before public release. Displaying an organization's logo does not, by itself, establish a formal partnership.
+> **Source-integrity note:** The aircraft in the hero and the aircraft structures in the fabrication workbench are procedural visual models. They are not source CAD files, real-time flight telemetry, certification evidence or validation results. Content should be checked against AeroBMSCE's approved records before public release.
 
-## Run locally on Windows
+## Requirements
 
-### Requirements
+- **Node.js 24 LTS is recommended.** Vite 8 requires Node.js 20.19+ or 22.12+; Node 24 LTS satisfies that requirement. See the [official Node.js download page](https://nodejs.org/en/download) and [Vite 8 compatibility notes](https://vite.dev/blog/announcing-vite8.html).
+- npm, included with the Node.js installer.
+- A modern browser with WebGL enabled for the interactive 3D scenes. The fabrication workbench offers a 2D blueprint fallback if WebGL cannot initialize.
+- Visual Studio Code is optional but recommended for editing.
 
-- Node.js 24 LTS recommended. Vite 8 requires Node.js 20.19+ or 22.12+.
-- npm, included with Node.js.
-- A modern browser with WebGL enabled for 3D views. The fabrication workbench includes a 2D blueprint fallback.
-- VS Code is recommended but optional.
+You do **not** need to install React, Vite, Three.js, TypeScript or the icon library globally. `npm install` installs the versions declared by the project.
 
-### Setup
+## Download and run on Windows
 
-1. Open the project folder containing `package.json` in VS Code.
-2. Choose **Terminal → New Terminal**.
-3. Check the installed versions:
+1. Download the project ZIP and use **Extract All…** in File Explorer.
+2. Open the extracted project folder in VS Code. Open the folder that contains `package.json` (not just the `src` folder).
+3. In VS Code, choose **Terminal → New Terminal**.
+4. Check Node.js and npm are available:
 
    ```powershell
    node --version
-   npm.cmd --version
+   npm --version
    ```
 
-4. Install the dependencies from the lockfile:
+5. Install the project's dependencies:
 
    ```powershell
    npm.cmd install
    ```
 
-5. Start the local development server:
+6. Start the development server:
 
    ```powershell
    npm.cmd run dev
    ```
 
-6. Open `http://localhost:3000/`. Keep the terminal open while using the site; press `Ctrl+C` in that terminal to stop the server.
+7. Open **http://localhost:3000/** in your browser. Keep the terminal open while using the development site; press `Ctrl+C` in that terminal to stop the server.
 
-Use `npm.cmd` in PowerShell because some Windows configurations block `npm.ps1`. You do not need to weaken the PowerShell execution policy for this project.
+`npm.cmd` is used in these Windows examples because PowerShell can block the `npm.ps1` script depending on the machine's execution policy. You do not need to change the PowerShell execution policy just to run the project.
 
 ## Useful commands
 
 | Command | Purpose |
 |---|---|
-| `npm.cmd install` | Installs dependencies based on `package.json` and updates the npm lockfile only if needed. |
-| `npm.cmd run dev` | Starts the Vite development server on port 3000. |
-| `npm.cmd run lint` | Runs `tsc --noEmit` as a TypeScript type check; despite the script name, this is not ESLint. |
-| `npm.cmd run build` | Creates the production bundle in `dist/`. |
-| `npm.cmd run preview` | Serves the last production build locally; run the build first. |
-| `npm.cmd run clean` | Deletes the generated `dist/` folder. |
+| `npm.cmd install` | Installs project dependencies and creates an npm lockfile if one is not present. |
+| `npm.cmd run dev` | Runs the Vite development server at port 3000. |
+| `npm.cmd run lint` | Runs `tsc --noEmit` as a TypeScript type-check. The script is named `lint` in the current `package.json`; it is not an ESLint run. |
+| `npm.cmd run build` | Creates the production build in `dist/`. |
+| `npm.cmd run preview` | Serves the production build locally for a final check (run `npm.cmd run build` first). |
+| `node scripts/generate-assets.js` | Regenerates certain generated SVG/PNG/JPEG assets using `sharp`. **Do not run this casually**: it rewrites the technical archive images `photo1.jpg`–`photo8.jpg` and `bg.jpg`. Supplied logos are deliberately skipped by the generator. |
 
-## Deploy to GitHub Pages
+On macOS or Linux, use `npm` in place of `npm.cmd`.
 
-A GitHub Actions workflow is included at `.github/workflows/deploy.yml`. It installs from `package-lock.json`, builds the site with the repository subpath `/AeroBMSCE_TASK_REPO/`, and publishes the `dist/` folder.
+## Environment variables
 
-1. Push the project to the `main` branch of the public `AeroBMSCE_TASK_REPO` repository.
-2. On GitHub, open **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. Open the repository's **Actions** tab and wait for **Deploy AeroBMSCE to GitHub Pages** to succeed.
-5. Visit `https://fishythevishy.github.io/AeroBMSCE_TASK_REPO/` after the workflow succeeds. The URL assumes the repository owner remains `fishythevishy` and the repository remains `AeroBMSCE_TASK_REPO`.
+The current page and its workbench do not read `GEMINI_API_KEY` or `APP_URL`; `.env.example` is inherited configuration documentation from the AI Studio starter. No `.env.local` file is needed to run this website as currently implemented. Do not put private API keys into client-side code or commit secrets to the repository.
 
-Asset paths are resolved using Vite's `BASE_URL` so public images work both at the local root and under the GitHub Pages repository path. The Pages workflow sets `GITHUB_PAGES=true` only for the production build; local development continues to use `/` as its base.
+## Project layout
 
-## If you are applying this project to the original fork
+```text
+.
+├── index.html
+├── package.json
+├── package-lock.json
+├── vite.config.ts
+├── tsconfig.json
+├── .env.example
+├── public/
+│   └── images/               # Logos, team photos, archive images and schematics
+├── scripts/
+│   └── generate-assets.js    # Optional asset generator; see warning above
+└── src/
+    ├── App.tsx               # Page composition and delegated card interactions
+    ├── index.css             # Global theme, gradients, floating-card and viewport CSS
+    ├── main.tsx              # React entry point
+    ├── data/aerobmsceData.ts # Content records and five workbench stages
+    └── components/           # Site sections and isolated Three.js scenes
+```
 
-This repository originally contained a plain HTML/CSS/JavaScript site. When replacing that starter with this Vite project:
+Important components:
 
-- Copy the **contents** of this project into the root of the cloned repository, overwriting matching files.
-- Preserve the cloned repository's hidden `.git` directory. This ZIP intentionally does not contain `.git`.
-- Remove obsolete top-level files from the old static site if they remain: `journey.html`, `partners.html`, `script.js`, `style.css`, and the old top-level `images/` directory.
-- **Keep `public/images/`**. It contains the logos, technical images and team photographs used by this project.
-- Do not copy `node_modules/` or `dist/` into Git. They are generated locally and are ignored by `.gitignore`.
-- No `.env` file or API key is required to run the current frontend.
+- `ScrollStorySection.tsx` — the scroll-responsive five-panel story sequence with the winding path; panel text and the featured competition result come from the project's existing data model.
+- `ThreeHeroCanvas.tsx` — the existing hero aircraft, camera presets, component inspection and flight-path simulation.
+- `AboutSection.tsx` — blueprint-led organizational introduction, focus-area strip, interactive selector for the four existing specialist teams, and the existing vision statement.
+- `CardboardWorkbenchSection.tsx` — the five-stage Digital Hangar experience. On larger screens with motion enabled, scrolling through the workbench runway advances the selected fabrication stage while the section remains pinned; selecting a stage directly also jumps to its scroll marker.
+- `Workbench3DViewport.tsx` — the stage-linked procedural 3D structure, eased camera transitions, hotspot picking, orbit/zoom, exploded and cutaway views, aileron deflection, 2D blueprint mode and illustrative flight profiles.
+- `TeamSection.tsx` — the six supplied team photographs, kept separate from the existing technical archive.
+- `CapabilitiesEcosystemSection.tsx` — software tools, component resources and research-organization logos, with copy clarifying that logo display alone does not establish partnership.
 
-## Main features
+## Fabrication workbench controls
 
-- Responsive single-page navigation and section layout.
-- Existing hero aircraft with separate camera/flight interaction code.
-- Five-stage fabrication workbench whose central viewport changes with each selected stage.
-- Workbench orbit/zoom, reset, hotspots, exploded/cutaway controls and 2D blueprint fallback.
-- Team photographs separate from the technical archive.
-- Engineering software, component-resource and research-organization logo groups.
-- Floating card effects, CSS-based specular-style highlights and slow purple atmosphere. These effects approximate glossy reflections; they are not real-time ray tracing.
+1. On larger screens with motion enabled, scroll through the pinned workbench to advance between the five stages. You can also select a stage in the sequence rail to jump directly to it. On smaller screens or with reduced motion enabled, the workbench becomes a normal flowing section.
+2. Drag within the viewport to orbit; use the mouse wheel or trackpad to zoom.
+3. Click a visible component hotspot to update the inspected-component callout.
+4. Use **EXPLODE** to spread selected structural elements and **CUTAWAY** to reveal more of the underlying frame.
+5. Use **2D BLUEPRINT** to return to the supplied technical blueprint. Hotspots remain selectable in that view.
+6. In Step 5, select **FLIGHT TEST** to open the trajectory controls. Choose **CRUISE CIRCUIT**, **CLIMB OUT**, **S-TURN** or **CONTROL TEST**; each profile uses a different illustrative path and attitude response. Start, pause/resume, reset, change the speed (0.5×/1.0×/1.5×), show/hide the path, toggle loop behaviour or enable camera follow.
+7. In the same Flight Test dock, move **AILERON DEFLECTION** or choose −15°, 0° or +15° to visibly rotate the control surface around its hinge. In **CONTROL TEST**, the selected angle also affects the model's illustrative roll. These are visual interactions, not validated aerodynamic behaviour or real flight data.
+8. Select **RESET** to restore the 3D camera framing; **RESET FLIGHT** returns the moving model to its starting point and clears flight progress.
 
-## Recruitment task reflection
-
-### 1. What needed improvement in the original website?
-
-The supplied starter was a lightweight static HTML/CSS/JavaScript site split across multiple pages. My redesign focused on a more consistent visual hierarchy, coherent navigation and section styling, clearer presentation of images, and a richer but still navigable way to explore the club's work. I reviewed image references and links as part of the update and retained the supplied organization, project and ecosystem assets where applicable.
-
-### 2. Design route and UI/UX decisions
-
-I chose a dark obsidian, plum and lavender visual system to give the site a cohesive aerospace-engineering identity. The layout combines clear section headings, restrained reflective effects, real team photographs, engineering resource logos and interactive technical views. The fabrication workbench connects five left-hand stages to a changing 3D viewport and matching explanation, while retaining a 2D blueprint fallback. Procedural models are labelled as illustrative rather than exact CAD.
-
-### 3. One problem or edge case and the workaround
-
-During local setup on Windows, PowerShell blocked `npm.ps1` under the machine's execution policy. Instead of weakening the system policy, I used `npm.cmd` to invoke npm from PowerShell. For deployment, I also made public image URLs use Vite's base URL so the assets can load from the `/AeroBMSCE_TASK_REPO/` subpath on GitHub Pages rather than assuming the site is hosted at the domain root.
+The workbench is built from procedural Three.js geometry, not imported CAD. Geometry and component positions are illustrative and should not be presented as an exact AeroBMSCE airframe drawing. The main aircraft hero uses its separate existing component and scene.
 
 ## Troubleshooting
 
-### `git` is not recognized
+### `node` or `npm` is not recognized
+Install Node.js 24 LTS from the official download page, complete the installer, restart VS Code, then retry `node --version` and `npm --version`.
 
-Install Git for Windows from [git-scm.com](https://git-scm.com/install/windows), close and reopen VS Code, and run `git --version` in a new terminal.
+### PowerShell says `npm.ps1` cannot run
+Use `npm.cmd install` and `npm.cmd run dev` as shown above. Do not change system execution policy solely for this app.
 
-### `node` or `npm.cmd` is not recognized
+### Dependency resolution fails
+First confirm `node --version` is compatible with Vite 8. Run `npm.cmd install` from the folder containing `package.json` and check the full error. Do not use `--force` or `--legacy-peer-deps` without understanding the specific conflict. The project declares `esbuild` 0.28-compatible versions to satisfy the Vite 8 peer requirement.
 
-Install Node.js 24 LTS from [nodejs.org](https://nodejs.org/en/download), finish the installer, restart VS Code, and try `node --version` and `npm.cmd --version` again.
+### Port 3000 is already in use
+Stop the other process using that port, or adjust the `dev` command in `package.json` and then use the URL reported by Vite.
 
-### PowerShell blocks `npm.ps1`
+### The 3D workbench is blank
+Check that WebGL is enabled and that your browser and graphics driver are up to date. Use **2D BLUEPRINT** as a fallback. Open the browser developer console if the scene fails, and keep the exact error for diagnosis.
 
-Use `npm.cmd install` and `npm.cmd run dev`; changing PowerShell execution policy is unnecessary.
+### Images are missing
+Confirm the asset exists under `public/images/` with the same filename and capitalization as the path in the component/data. Vite serves files from `public/` at the root URL, so `public/images/logo.png` is referenced as `/images/logo.png`.
 
-### Build or deployment fails
+### Vite warns about `__dirname` in `vite.config.ts`
+This warning was noted in the earlier project handoff. Check whether the dev server/build actually fails before changing the config; do not make unrelated configuration edits solely to silence a warning.
 
-Check the first meaningful error in the terminal or GitHub Actions log. Do not use `--force` or `--legacy-peer-deps` as a first resort. Check that the repository name matches `AeroBMSCE_TASK_REPO`, the Pages source is **GitHub Actions**, and the workflow ran on `main`.
+### `npm.cmd run build` or `npm.cmd run lint` fails
+Copy the first meaningful error from the terminal, including the file and line number. Avoid unrelated dependency or configuration edits before identifying the failure.
 
-### Images do not appear on GitHub Pages
+## Verification status for this handoff
 
-Check that the file exists in `public/images/` and the spelling/capitalization matches the reference. Do not change the deployment base to `/` for a project-site URL.
-
-### The 3D workbench does not initialize
-
-Confirm WebGL is enabled and browser graphics drivers are up to date. Use **2D BLUEPRINT** as a fallback, then inspect the browser console for the first error.
-
-## Verification status
-
-The ZIP includes source code, assets, the GitHub Pages workflow and this README. Run `npm.cmd run lint` and `npm.cmd run build` locally before submitting. A successful GitHub Actions run and a visual check of the deployed website are required before treating the deployment as verified.
+The updated TypeScript source passes `npm run lint` in the available environment. A production build and in-browser visual review remain to be completed on a machine where Vite/Rolldown’s matching platform-native optional dependency is installed. Do not interpret the TypeScript check as proof that every runtime interaction has been verified.

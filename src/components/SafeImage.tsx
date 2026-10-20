@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Plane, AlertCircle } from 'lucide-react';
-import { publicAsset } from '../utils/publicAsset';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -49,7 +48,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         </div>
       )}
       <img
-        src={publicAsset(src)}
+        src={src}
         alt={alt}
         referrerPolicy="no-referrer"
         loading="lazy"

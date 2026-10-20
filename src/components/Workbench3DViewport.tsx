@@ -3,10 +3,18 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   Box,
+  Camera,
   Crosshair,
+  Eye,
+  EyeOff,
   Layers3,
   Maximize2,
+  Pause,
+  Plane,
+  Play,
+  Repeat2,
   RotateCcw,
+  Route,
   Scan,
   ZoomIn,
   ZoomOut,
@@ -30,6 +38,15 @@ interface Workbench3DViewportProps {
 }
 
 type ViewMode = '3D' | '2D';
+type FlightProfile = 'CRUISE' | 'CLIMB' | 'S_TURN' | 'CONTROL_TEST';
+type FlightState = 'READY' | 'FLYING' | 'PAUSED' | 'COMPLETED';
+
+const FLIGHT_PROFILES: Array<{ id: FlightProfile; label: string; description: string }> = [
+  { id: 'CRUISE', label: 'CRUISE CIRCUIT', description: 'A smooth closed circuit with gentle banking.' },
+  { id: 'CLIMB', label: 'CLIMB OUT', description: 'A rising trajectory; loop mode reverses at each end.' },
+  { id: 'S_TURN', label: 'S-TURN', description: 'A sweeping lateral path with alternating bank.' },
+  { id: 'CONTROL_TEST', label: 'CONTROL TEST', description: 'A tighter inspection loop where the selected aileron deflection also affects the illustrative roll.' },
+];
 
 interface WingSpec {
   halfSpan: number;
@@ -356,17 +373,25 @@ function buildWorkbenchModel(stageIndex: number, exploded: boolean, cutaway: boo
     addFuselageFrames(root, exploded, !cutaway);
     addSmallTail(root);
 
-    const hingeZ = wingPoint(0, 0.76, 1, MAIN_WING).z;
+    const hingePoint = wingPoint(0, 0.76, 1, MAIN_WING);
+    const hingeZ = hingePoint.z;
+    const hingeY = hingePoint.y;
     aileron = new THREE.Group();
-    aileron.position.z = hingeZ;
-    aileron.add(makeWingSurface(MAIN_WING, 0.76, 0.96, 1, '#AD8BEB', cutaway ? 0.16 : 0.58, hingeZ));
-    aileron.add(makeWingSurface(MAIN_WING, 0.76, 0.96, -1, '#6A4DA3', cutaway ? 0.1 : 0.33, hingeZ));
+    // Use the actual hinge location as the pivot; translating the vertices into
+    // this local frame makes the slider rotate the control surface instead of
+    // spinning it around an unrelated point in the middle of the model.
+    aileron.position.set(0, hingeY, hingeZ);
+    const aileronUpper = makeWingSurface(MAIN_WING, 0.76, 0.96, 1, '#AD8BEB', cutaway ? 0.16 : 0.58, hingeZ);
+    const aileronLower = makeWingSurface(MAIN_WING, 0.76, 0.96, -1, '#6A4DA3', cutaway ? 0.1 : 0.33, hingeZ);
+    aileronUpper.geometry.translate(0, -hingeY, 0);
+    aileronLower.geometry.translate(0, -hingeY, 0);
+    aileron.add(aileronUpper, aileronLower);
     const hingePoints: THREE.Vector3[] = [];
     for (let i = 0; i <= 32; i += 1) {
       const x = -MAIN_WING.halfSpan + (2 * MAIN_WING.halfSpan * i) / 32;
       const p = wingPoint(x, 0.76, 1, MAIN_WING);
       p.y += 0.015;
-      hingePoints.push(new THREE.Vector3(p.x, p.y, p.z - hingeZ));
+      hingePoints.push(new THREE.Vector3(p.x, p.y - hingeY, p.z - hingeZ));
     }
     aileron.add(makeTube(hingePoints, 0.014, '#E4DAFF', 0.95));
     root.add(aileron);
@@ -374,6 +399,52 @@ function buildWorkbenchModel(stageIndex: number, exploded: boolean, cutaway: boo
 
   addHotspotMarkers(root, hotspotMeshes, stageIndex);
   return { root, hotspotMeshes, aileron };
+}
+
+function createWorkbenchFlightCurve(profile: FlightProfile) {
+  if (profile === 'CRUISE') {
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const t = (i / 12) * Math.PI * 2;
+      points.push(new THREE.Vector3(Math.sin(t) * 1.45, 0.1 + Math.sin(t * 2) * 0.16, Math.cos(t) * 1.85));
+    }
+    return new THREE.CatmullRomCurve3(points, true, 'centripetal');
+  }
+  if (profile === 'CLIMB') {
+    return new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.35, -0.48, 1.85),
+      new THREE.Vector3(-1.2, -0.22, 1.02),
+      new THREE.Vector3(-0.55, 0.05, 0.22),
+      new THREE.Vector3(0.35, 0.32, -0.65),
+      new THREE.Vector3(0.95, 0.72, -1.32),
+      new THREE.Vector3(1.15, 1.02, -1.8),
+    ], false, 'centripetal');
+  }
+  if (profile === 'S_TURN') {
+    return new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.45, -0.1, 1.75),
+      new THREE.Vector3(-1.28, 0.06, 1.02),
+      new THREE.Vector3(-0.62, 0.22, 0.46),
+      new THREE.Vector3(0.58, 0.08, -0.12),
+      new THREE.Vector3(1.28, 0.28, -0.72),
+      new THREE.Vector3(1.1, 0.48, -1.36),
+      new THREE.Vector3(0.54, 0.28, -1.82),
+    ], false, 'centripetal');
+  }
+  // Control-surface inspection uses a compact closed loop so the moving
+  // structure stays large enough to see while the deflected hinge is examined.
+  const points: THREE.Vector3[] = [];
+  for (let i = 0; i < 12; i += 1) {
+    const t = (i / 12) * Math.PI * 2;
+    points.push(new THREE.Vector3(Math.sin(t) * 0.95, 0.08 + Math.sin(t * 2) * 0.12, Math.cos(t) * 1.5));
+  }
+  return new THREE.CatmullRomCurve3(points, true, 'centripetal');
+}
+
+function disposeLineObject(object: THREE.Line | THREE.LineLoop) {
+  object.geometry.dispose();
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  materials.forEach((entry) => entry.dispose());
 }
 
 export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
@@ -387,9 +458,32 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
   const [cutaway, setCutaway] = useState(false);
   const [zoomed2D, setZoomed2D] = useState(false);
   const [deflectionAngle, setDeflectionAngle] = useState(0);
+  const [flightControlsOpen, setFlightControlsOpen] = useState(false);
+  const [flightProfile, setFlightProfile] = useState<FlightProfile>('CRUISE');
+  const [flightState, setFlightState] = useState<FlightState>('READY');
+  const [flightProgress, setFlightProgress] = useState(0);
+  const [flightSpeed, setFlightSpeed] = useState(1);
+  const [showFlightPath, setShowFlightPath] = useState(true);
+  const [loopFlight, setLoopFlight] = useState(true);
+  const [cameraFollow, setCameraFollow] = useState(false);
   const [webglError, setWebglError] = useState(false);
   const viewModeRef = useRef<ViewMode>('3D');
   viewModeRef.current = viewMode;
+  const flightStateRef = useRef<FlightState>(flightState);
+  flightStateRef.current = flightState;
+  const flightProfileRef = useRef<FlightProfile>(flightProfile);
+  flightProfileRef.current = flightProfile;
+  const flightSpeedRef = useRef(flightSpeed);
+  flightSpeedRef.current = flightSpeed;
+  const loopFlightRef = useRef(loopFlight);
+  loopFlightRef.current = loopFlight;
+  const cameraFollowRef = useRef(cameraFollow);
+  cameraFollowRef.current = cameraFollow;
+  const deflectionAngleRef = useRef(deflectionAngle);
+  deflectionAngleRef.current = deflectionAngle;
+  const flightProgressRef = useRef(0);
+  const flightDirectionRef = useRef(1);
+  const lastProgressDisplayRef = useRef(-1);
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -398,7 +492,10 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
   const modelRef = useRef<THREE.Group | null>(null);
   const hotspotMeshesRef = useRef<THREE.Mesh[]>([]);
   const aileronRef = useRef<THREE.Group | null>(null);
+  const flightCurveRef = useRef<THREE.CatmullRomCurve3 | null>(null);
+  const flightPathRef = useRef<THREE.Line | THREE.LineLoop | null>(null);
   const downPointRef = useRef<{ x: number; y: number } | null>(null);
+  const cameraGoalRef = useRef<{ position: THREE.Vector3; target: THREE.Vector3 } | null>(null);
   const selectHotspotRef = useRef(onSelectHotspot);
 
   useEffect(() => { selectHotspotRef.current = onSelectHotspot; }, [onSelectHotspot]);
@@ -407,7 +504,8 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
-    camera.position.set(7.2, 5.4, 7.1);
+    cameraGoalRef.current = null;
+    camera.position.set(6.4, 3.8, 6.2);
     controls.target.set(0, 0, 0);
     controls.update();
   }, []);
@@ -425,7 +523,7 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
       scene.background = new THREE.Color('#090611');
       scene.fog = new THREE.Fog('#090611', 12, 28);
       camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-      camera.position.set(7.2, 5.4, 7.1);
+      camera.position.set(6.4, 3.8, 6.2);
       camera.lookAt(0, 0, 0);
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
@@ -442,6 +540,14 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
       controls.maxDistance = 16;
       controls.target.set(0, 0, 0);
       controls.update();
+      controls.addEventListener('start', () => {
+        cameraGoalRef.current = null;
+        // Manual orbit takes precedence over chase-camera mode.
+        if (cameraFollowRef.current) {
+          cameraFollowRef.current = false;
+          setCameraFollow(false);
+        }
+      });
 
       scene.add(new THREE.HemisphereLight('#D8C9FF', '#170C25', 1.75));
       const keyLight = new THREE.DirectionalLight('#F0E5FF', 2.1);
@@ -479,9 +585,102 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
       resize();
 
       let animationFrame = 0;
+      let previousFrameTime = performance.now();
+      const tempPosition = new THREE.Vector3();
+      const tempTangent = new THREE.Vector3();
+      const nextTangent = new THREE.Vector3();
+      const localForward = new THREE.Vector3(0, 0, 1);
+      const flightOrientation = new THREE.Quaternion();
+      const identityOrientation = new THREE.Quaternion();
+      const cameraOffset = new THREE.Vector3();
+      const desiredCameraPosition = new THREE.Vector3();
+      const cameraElevation = new THREE.Vector3(0, 2.05, 0);
       const animate = () => {
         animationFrame = window.requestAnimationFrame(animate);
+        const now = performance.now();
+        const delta = Math.min(0.05, Math.max(0, (now - previousFrameTime) / 1000));
+        previousFrameTime = now;
         if (viewModeRef.current === '3D') {
+          const model = modelRef.current;
+          const activeFlightState = flightStateRef.current;
+          const curve = flightCurveRef.current;
+          const isFlying = activeFlightState === 'FLYING';
+          const isInFlightScene = activeFlightState === 'FLYING' || activeFlightState === 'PAUSED' || activeFlightState === 'COMPLETED';
+
+          if (model && typeof model.userData.transitionStart === 'number' && !isInFlightScene) {
+            const t = Math.min(1, (now - model.userData.transitionStart) / 720);
+            const eased = 1 - Math.pow(1 - t, 3);
+            model.scale.setScalar(0.93 + eased * 0.07);
+            model.rotation.y = -0.075 * (1 - eased);
+            if (t >= 1) delete model.userData.transitionStart;
+          }
+
+          if (model && isFlying && curve) {
+            const isClosedPath = flightProfileRef.current === 'CRUISE' || flightProfileRef.current === 'CONTROL_TEST';
+            let progress = flightProgressRef.current;
+            progress += delta * 0.055 * flightSpeedRef.current * flightDirectionRef.current;
+            if (progress > 1 || progress < 0) {
+              if (loopFlightRef.current && isClosedPath) {
+                progress = (progress % 1 + 1) % 1;
+              } else if (loopFlightRef.current) {
+                progress = progress > 1 ? 1 : 0;
+                flightDirectionRef.current *= -1;
+              } else {
+                progress = progress > 1 ? 1 : 0;
+                flightProgressRef.current = progress;
+                setFlightProgress(progress * 100);
+                flightStateRef.current = 'COMPLETED';
+                setFlightState('COMPLETED');
+              }
+            }
+            flightProgressRef.current = progress;
+            const percent = Math.round(progress * 100);
+            if (percent !== lastProgressDisplayRef.current) {
+              lastProgressDisplayRef.current = percent;
+              setFlightProgress(percent);
+            }
+            curve.getPointAt(progress, tempPosition);
+            curve.getTangentAt(progress, tempTangent).multiplyScalar(flightDirectionRef.current).normalize();
+            const lookAhead = THREE.MathUtils.clamp(progress + 0.006 * flightDirectionRef.current, 0, 1);
+            curve.getTangentAt(lookAhead, nextTangent).multiplyScalar(flightDirectionRef.current).normalize();
+            model.position.copy(tempPosition);
+            flightOrientation.setFromUnitVectors(localForward, tempTangent);
+            model.quaternion.copy(flightOrientation);
+            const bend = tempTangent.clone().cross(nextTangent).y;
+            const pathBank = THREE.MathUtils.clamp(-bend * 18 * flightDirectionRef.current, -0.32, 0.32);
+            const controlBank = flightProfileRef.current === 'CONTROL_TEST'
+              ? THREE.MathUtils.degToRad(deflectionAngleRef.current * 0.55)
+              : 0;
+            model.rotateZ(pathBank + controlBank);
+            // Keep the moving structure legible as it travels around the scene.
+            model.scale.setScalar(THREE.MathUtils.lerp(model.scale.x, 0.62, 0.045));
+
+            if (cameraFollowRef.current) {
+              cameraGoalRef.current = null;
+              cameraOffset.copy(tempTangent).multiplyScalar(-4.4).add(cameraElevation);
+              desiredCameraPosition.copy(tempPosition).add(cameraOffset);
+              camera.position.lerp(desiredCameraPosition, 0.045);
+              controls.target.lerp(tempPosition, 0.065);
+            }
+          } else if (model && !isInFlightScene) {
+            model.position.lerp(new THREE.Vector3(0, 0, 0), 0.12);
+            model.quaternion.slerp(identityOrientation, 0.12);
+            model.scale.setScalar(THREE.MathUtils.lerp(model.scale.x, 0.93, 0.08));
+            if (aileronRef.current) aileronRef.current.rotation.x = THREE.MathUtils.degToRad(deflectionAngleRef.current);
+          } else if (model && isInFlightScene) {
+            model.scale.setScalar(THREE.MathUtils.lerp(model.scale.x, 0.62, 0.045));
+          }
+
+          const goal = cameraGoalRef.current;
+          if (goal && !cameraFollowRef.current) {
+            camera.position.lerp(goal.position, 0.055);
+            controls.target.lerp(goal.target, 0.055);
+            if (camera.position.distanceTo(goal.position) < 0.018 && controls.target.distanceTo(goal.target) < 0.012) {
+              camera.position.copy(goal.position);
+              controls.target.copy(goal.target);
+              cameraGoalRef.current = null;
+            }
+          }
           controls.update();
           renderer.render(scene, camera);
         }
@@ -541,13 +740,37 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
       disposeGroup(modelRef.current);
     }
     const model = buildWorkbenchModel(activeStepIndex, exploded, cutaway);
+    model.root.scale.setScalar(0.93);
+    model.root.userData.transitionStart = performance.now();
     modelRef.current = model.root;
     hotspotMeshesRef.current = model.hotspotMeshes;
     aileronRef.current = model.aileron;
+    if (model.aileron) model.aileron.rotation.x = THREE.MathUtils.degToRad(deflectionAngleRef.current);
+    model.root.position.set(0, 0, 0);
+    model.root.quaternion.identity();
     sceneRef.current.add(model.root);
   }, [activeStepIndex, exploded, cutaway]);
 
   useEffect(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    const cameraStages: Array<{ position: [number, number, number]; target: [number, number, number] }> = [
+      { position: [6.4, 3.8, 6.2], target: [0, 0, 0] },
+      { position: [6.9, 2.7, 5.2], target: [0, 0.04, 0] },
+      { position: [4.1, 5.1, 7.1], target: [0, 0.05, -0.18] },
+      { position: [-6.2, 3.2, 5.2], target: [0, 0, -0.1] },
+      { position: [6.8, 3.3, -6.1], target: [0, 0.02, -0.1] },
+    ];
+    const preset = cameraStages[activeStepIndex] ?? cameraStages[0];
+    cameraGoalRef.current = {
+      position: new THREE.Vector3(...preset.position),
+      target: new THREE.Vector3(...preset.target),
+    };
+  }, [activeStepIndex]);
+
+  useEffect(() => {
+    deflectionAngleRef.current = deflectionAngle;
     if (aileronRef.current) aileronRef.current.rotation.x = THREE.MathUtils.degToRad(deflectionAngle);
   }, [deflectionAngle]);
 
@@ -573,12 +796,128 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
     setExploded(false);
     setCutaway(false);
     setDeflectionAngle(0);
+    setFlightControlsOpen(false);
+    flightProgressRef.current = 0;
+    flightDirectionRef.current = 1;
+    lastProgressDisplayRef.current = -1;
+    setFlightProgress(0);
+    flightStateRef.current = 'READY';
+    setFlightState('READY');
+    if (modelRef.current) {
+      modelRef.current.position.set(0, 0, 0);
+      modelRef.current.quaternion.identity();
+      modelRef.current.scale.setScalar(0.93);
+    }
+    cameraFollowRef.current = false;
+    setCameraFollow(false);
   }, [activeStepIndex]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (flightPathRef.current) {
+      scene.remove(flightPathRef.current);
+      disposeLineObject(flightPathRef.current);
+      flightPathRef.current = null;
+    }
+    const curve = createWorkbenchFlightCurve(flightProfile);
+    flightCurveRef.current = curve;
+    const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(180));
+    const pathMaterial = new THREE.LineBasicMaterial({ color: '#B9A0FF', transparent: true, opacity: 0.8 });
+    const path = flightProfile === 'CRUISE' || flightProfile === 'CONTROL_TEST'
+      ? new THREE.LineLoop(geometry, pathMaterial)
+      : new THREE.Line(geometry, pathMaterial);
+    path.visible = showFlightPath && activeStepIndex === 4 && flightControlsOpen;
+    path.renderOrder = 3;
+    scene.add(path);
+    flightPathRef.current = path;
+    return () => {
+      if (sceneRef.current) sceneRef.current.remove(path);
+      disposeLineObject(path);
+      if (flightPathRef.current === path) flightPathRef.current = null;
+    };
+  }, [flightProfile, webglError]);
+
+  useEffect(() => {
+    if (flightPathRef.current) {
+      const keepPathVisible = showFlightPath && activeStepIndex === 4 && (flightControlsOpen || flightState === 'FLYING' || flightState === 'PAUSED' || flightState === 'COMPLETED');
+      flightPathRef.current.visible = keepPathVisible;
+    }
+  }, [showFlightPath, activeStepIndex, flightControlsOpen, flightState]);
+
+  useEffect(() => {
+    flightSpeedRef.current = flightSpeed;
+  }, [flightSpeed]);
+
+  useEffect(() => {
+    if (viewMode !== '3D' && flightStateRef.current === 'FLYING') {
+      flightStateRef.current = 'PAUSED';
+      setFlightState('PAUSED');
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    loopFlightRef.current = loopFlight;
+    cameraFollowRef.current = cameraFollow;
+  }, [showFlightPath, loopFlight, cameraFollow]);
+
+  const handleStartPauseFlight = () => {
+    if (activeStepIndex !== 4 || viewMode !== '3D' || !flightCurveRef.current) return;
+    if (flightStateRef.current === 'FLYING') {
+      flightStateRef.current = 'PAUSED';
+      setFlightState('PAUSED');
+      return;
+    }
+    if (flightStateRef.current === 'COMPLETED') {
+      flightProgressRef.current = 0;
+      setFlightProgress(0);
+      lastProgressDisplayRef.current = -1;
+      flightDirectionRef.current = 1;
+      if (modelRef.current) {
+        modelRef.current.position.set(0, 0, 0);
+        modelRef.current.quaternion.identity();
+      }
+    }
+    cameraGoalRef.current = null;
+    flightStateRef.current = 'FLYING';
+    setFlightState('FLYING');
+  };
+
+  const resetFlight = () => {
+    flightStateRef.current = 'READY';
+    setFlightState('READY');
+    flightProgressRef.current = 0;
+    flightDirectionRef.current = 1;
+    lastProgressDisplayRef.current = -1;
+    setFlightProgress(0);
+    cameraFollowRef.current = false;
+    setCameraFollow(false);
+    if (modelRef.current) {
+      modelRef.current.position.set(0, 0, 0);
+      modelRef.current.quaternion.identity();
+      modelRef.current.scale.setScalar(0.93);
+    }
+    resetCamera();
+  };
+
+  const chooseFlightProfile = (profile: FlightProfile) => {
+    flightStateRef.current = 'READY';
+    setFlightState('READY');
+    flightProgressRef.current = 0;
+    flightDirectionRef.current = 1;
+    lastProgressDisplayRef.current = -1;
+    setFlightProgress(0);
+    setFlightProfile(profile);
+    if (modelRef.current) {
+      modelRef.current.position.set(0, 0, 0);
+      modelRef.current.quaternion.identity();
+    }
+  };
 
   const zoom2D = () => setZoomed2D((value) => !value);
 
   return (
-    <div className="aero-gloss-panel relative overflow-hidden rounded-xl border border-[#39284F] bg-[#090611] shadow-2xl">
+    <div className={`aero-gloss-panel relative overflow-hidden rounded-xl border border-[#39284F] bg-[#090611] shadow-2xl ${flightControlsOpen && activeStepIndex === 4 && viewMode === '3D' ? 'workbench-flight-open' : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#241831] bg-[#0B0812]/95 p-2.5">
         <div className="flex items-center gap-1 rounded-lg border border-[#342447] bg-[#07050B] p-1" role="group" aria-label="Workbench display mode">
           <button type="button" onClick={() => setViewMode('3D')} aria-pressed={viewMode === '3D'} className={`rounded-md px-3 py-1.5 text-[11px] font-mono transition-colors ${viewMode === '3D' ? 'bg-[#B9A0FF] text-[#120A20]' : 'text-[#B6A6CE] hover:text-white'}`}>
@@ -599,6 +938,11 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
             <button type="button" onClick={resetCamera} className="workbench-tool-button" title="Reset camera">
               <RotateCcw className="h-3.5 w-3.5" /> RESET
             </button>
+            {activeStepIndex === 4 && (
+              <button type="button" onClick={() => setFlightControlsOpen((open) => !open)} aria-expanded={flightControlsOpen} aria-controls="workbench-flight-dock" className={`workbench-tool-button ${flightControlsOpen ? 'is-active' : ''}`} title="Open illustrative flight test controls">
+                <Plane className="h-3.5 w-3.5" /> {flightControlsOpen ? 'FLIGHT OPEN' : 'FLIGHT TEST'}
+              </button>
+            )}
           </div>
         ) : (
           <button type="button" onClick={zoom2D} className="workbench-tool-button" title="Zoom blueprint">
@@ -608,9 +952,9 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
       </div>
 
       <div className={`relative ${viewMode === '3D' ? '' : 'hidden'}`}>
-        <div ref={mountRef} className={`workbench-3d-stage h-[360px] sm:h-[480px] ${webglError ? 'hidden' : ''}`} />
+        <div ref={mountRef} className={`workbench-3d-stage ${webglError ? 'hidden' : ''}`} />
         {webglError && (
-          <div className="flex h-[360px] flex-col items-center justify-center gap-3 px-8 text-center sm:h-[480px]">
+          <div className="workbench-3d-fallback flex flex-col items-center justify-center gap-3 px-8 text-center">
             <Box className="h-9 w-9 text-[#B9A0FF]" />
             <h4 className="font-display text-lg font-bold text-[#F4F2FF]">3D preview unavailable</h4>
             <p className="max-w-sm text-xs leading-relaxed text-[#B6A6CE]">WebGL could not be started in this browser. Switch to the 2D blueprint to continue using the workbench.</p>
@@ -662,16 +1006,51 @@ export const Workbench3DViewport: React.FC<Workbench3DViewportProps> = ({
         </div>
       )}
 
-      {activeStepIndex === 4 && viewMode === '3D' && !webglError && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-[#241831] bg-[#0B0812] px-4 py-3">
-          <label htmlFor="aileron-deflection" className="whitespace-nowrap text-[10px] font-mono tracking-wide text-[#BCA8E8]">AILERON DEFLECTION</label>
-          <input id="aileron-deflection" aria-label="Illustrative aileron deflection angle" type="range" min="-20" max="20" step="1" value={deflectionAngle} onChange={(event) => setDeflectionAngle(Number(event.target.value))} className="min-w-[110px] flex-1 accent-[#B9A0FF]" />
-          <span className="min-w-[42px] text-right text-xs font-mono tabular-nums text-[#F1E9FF]">{deflectionAngle}°</span>
+      {activeStepIndex === 4 && viewMode === '3D' && !webglError && flightControlsOpen && (
+        <div id="workbench-flight-dock" className="workbench-flight-dock">
+          <div className="workbench-flight-dock__heading">
+            <span><Plane className="h-3.5 w-3.5" /> FLIGHT TEST / ILLUSTRATIVE MOTION</span>
+            <span className={`workbench-flight-status is-${flightState.toLowerCase()}`}><i /> {flightState}</span>
+          </div>
+          <div className="workbench-flight-profiles" role="group" aria-label="Illustrative flight profile">
+            {FLIGHT_PROFILES.map((profile) => (
+              <button key={profile.id} type="button" onClick={() => chooseFlightProfile(profile.id)} aria-pressed={flightProfile === profile.id} className={`workbench-flight-profile ${flightProfile === profile.id ? 'is-active' : ''}`}>
+                <span>{profile.label}</span>
+                <small>{profile.description}</small>
+              </button>
+            ))}
+          </div>
+          <div className="workbench-flight-controls">
+            <button type="button" onClick={handleStartPauseFlight} className="workbench-flight-primary">
+              {flightState === 'FLYING' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {flightState === 'FLYING' ? 'PAUSE' : flightState === 'PAUSED' ? 'RESUME' : flightState === 'COMPLETED' ? 'FLY AGAIN' : 'FLY PATH'}
+            </button>
+            <button type="button" onClick={resetFlight} className="workbench-tool-button"><RotateCcw className="h-3.5 w-3.5" /> RESET FLIGHT</button>
+            <button type="button" onClick={() => setShowFlightPath((visible) => !visible)} aria-pressed={showFlightPath} className={`workbench-tool-button ${showFlightPath ? 'is-active' : ''}`}>{showFlightPath ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />} PATH</button>
+            <button type="button" onClick={() => setLoopFlight((loop) => !loop)} aria-pressed={loopFlight} className={`workbench-tool-button ${loopFlight ? 'is-active' : ''}`}><Repeat2 className="h-3.5 w-3.5" /> {loopFlight ? 'LOOP ON' : 'LOOP OFF'}</button>
+            <button type="button" onClick={() => setCameraFollow((follow) => !follow)} aria-pressed={cameraFollow} className={`workbench-tool-button ${cameraFollow ? 'is-active' : ''}`}><Camera className="h-3.5 w-3.5" /> {cameraFollow ? 'FOLLOW ON' : 'FOLLOW OFF'}</button>
+            <div className="workbench-flight-speed" role="group" aria-label="Flight speed">
+              <span>SPEED</span>
+              {[0.5, 1, 1.5].map((speed) => <button key={speed} type="button" onClick={() => setFlightSpeed(speed)} aria-pressed={flightSpeed === speed} className={flightSpeed === speed ? 'is-active' : ''}>{speed.toFixed(1)}×</button>)}
+            </div>
+          </div>
+          <div className="workbench-aileron-control">
+            <div className="workbench-aileron-control__label"><span>AILERON DEFLECTION</span><strong>{deflectionAngle > 0 ? '+' : ''}{deflectionAngle}°</strong></div>
+            <input id="aileron-deflection" aria-label="Illustrative aileron deflection angle" type="range" min="-20" max="20" step="1" value={deflectionAngle} onChange={(event) => setDeflectionAngle(Number(event.target.value))} />
+            <div className="workbench-aileron-presets">
+              {[-15, 0, 15].map((angle) => <button key={angle} type="button" onClick={() => setDeflectionAngle(angle)} className={deflectionAngle === angle ? 'is-active' : ''}>{angle > 0 ? '+' : ''}{angle}°</button>)}
+            </div>
+            <p>The control surface rotates around its hinge. In CONTROL TEST mode, the selected angle also changes the model's illustrative bank. This is a visual study, not aerodynamic or flight-test data.</p>
+          </div>
+          <div className="workbench-flight-progress">
+            <div><span>{FLIGHT_PROFILES.find((profile) => profile.id === flightProfile)?.description}</span><strong>{Math.round(flightProgress)}%</strong></div>
+            <div className="workbench-flight-progress__track"><span style={{ width: `${Math.min(100, Math.max(0, flightProgress))}%` }} /></div>
+          </div>
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#241831] bg-[#090611] px-4 py-2 text-[10px] font-mono text-[#8F7CAD]">
         <span>STAGE {String(activeStepIndex + 1).padStart(2, '0')} / 05</span>
-        <span>{viewMode === '3D' ? (exploded ? 'EXPLODED ASSEMBLY' : cutaway ? 'INTERNAL STRUCTURE' : 'INTERACTIVE ASSEMBLY') : 'BLUEPRINT REFERENCE'}</span>
+        <span>{viewMode === '3D' ? (flightState === 'FLYING' ? `${flightProfile.replace('_', ' ')} · IN MOTION` : exploded ? 'EXPLODED ASSEMBLY' : cutaway ? 'INTERNAL STRUCTURE' : 'INTERACTIVE ASSEMBLY') : 'BLUEPRINT REFERENCE'}</span>
       </div>
     </div>
   );

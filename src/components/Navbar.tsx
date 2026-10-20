@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { publicAsset } from '../utils/publicAsset';
 
 interface NavbarProps {
   onOpenContact: () => void;
@@ -26,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenContact }) => {
         {/* Zone 1: Brand Wordmark */}
         <a href="#" className="flex items-center gap-3 shrink-0 group">
           <img
-            src={publicAsset('/images/logo.png')}
+            src="/images/logo.png"
             alt="AeroBMSCE Logo"
             className="h-10 w-auto object-contain transition-opacity group-hover:opacity-90"
           />

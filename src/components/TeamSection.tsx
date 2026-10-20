@@ -1,6 +1,5 @@
 import React from 'react';
 import { Camera, ArrowUpRight } from 'lucide-react';
-import { publicAsset } from '../utils/publicAsset';
 
 const TEAM_PHOTOS = [
   {
@@ -72,7 +71,7 @@ export const TeamSection: React.FC = () => {
             >
               <div className={`relative ${photo.aspect} overflow-hidden bg-[#050509]`}>
                 <img
-                  src={publicAsset(photo.image)}
+                  src={photo.image}
                   alt={photo.alt}
                   loading="lazy"
                   decoding="async"

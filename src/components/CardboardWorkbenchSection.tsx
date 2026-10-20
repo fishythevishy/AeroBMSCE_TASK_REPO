@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, Layers3 } from 'lucide-react';
 import { WORKBENCH_STAGES } from '../data/aerobmsceData';
 import { Workbench3DViewport, type WorkbenchHotspot } from './Workbench3DViewport';
 
@@ -33,7 +34,7 @@ const WORKBENCH_HOTSPOTS: WorkbenchHotspot[] = [
     y: 58,
     title: 'Main Shear Web & Spar Slot',
     tag: 'PRIMARY BENDING MEMBER',
-    detail: 'Notched at 25% chord (aerodynamic center) to seat full-length continuous carbon-fiber tube spar.'
+    detail: 'Notched at 25% chord to seat the longitudinal spar in this illustrative assembly model.'
   },
   {
     id: 'dbox',
@@ -49,7 +50,7 @@ const WORKBENCH_HOTSPOTS: WorkbenchHotspot[] = [
     y: 35,
     title: 'Tail Boom Hardpoints',
     tag: 'EMPENNAGE MOUNT',
-    detail: 'Reinforced ply doublers distributing stabilizer pitch loads directly into the main fuselage frames.'
+    detail: 'A conceptual view of the tail and its connection to the fuselage structure.'
   },
   {
     id: 'nose',
@@ -57,7 +58,7 @@ const WORKBENCH_HOTSPOTS: WorkbenchHotspot[] = [
     y: 56,
     title: 'Motor Firewall & Thrust Line',
     tag: 'PROPULSION CRADLE',
-    detail: 'Cardboard mock firewall verifying the intended motor mount and thrust-line geometry.'
+    detail: 'An illustrative firewall area for inspecting the relationship between the motor mount and fuselage centerline.'
   },
   {
     id: 'hingeline',
@@ -69,136 +70,160 @@ const WORKBENCH_HOTSPOTS: WorkbenchHotspot[] = [
   }
 ];
 
+const STICKY_TOP = 64;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 export const CardboardWorkbenchSection: React.FC = () => {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [selectedHotspot, setSelectedHotspot] = useState<WorkbenchHotspot>(WORKBENCH_HOTSPOTS[0]);
+  const runwayRef = useRef<HTMLDivElement>(null);
+  const activeStepRef = useRef(0);
+  activeStepRef.current = activeStepIndex;
 
-  const currentStage = WORKBENCH_STAGES[activeStepIndex];
-  const handleStepChange = (index: number) => {
-    setActiveStepIndex(index);
+  const currentStage = WORKBENCH_STAGES[activeStepIndex] ?? WORKBENCH_STAGES[0];
+
+  const handleStepChange = useCallback((index: number) => {
+    const nextIndex = clamp(index, 0, WORKBENCH_STAGES.length - 1);
+    setActiveStepIndex(nextIndex);
     const hotspotByStage = ['lofting', 'ribs', 'bulkheads', 'dbox', 'hingeline'];
-    const nextHotspot = WORKBENCH_HOTSPOTS.find((spot) => spot.id === hotspotByStage[index]);
+    const nextHotspot = WORKBENCH_HOTSPOTS.find((spot) => spot.id === hotspotByStage[nextIndex]);
     if (nextHotspot) setSelectedHotspot(nextHotspot);
-  };
+  }, []);
+
+  const jumpToStage = useCallback((index: number) => {
+    const runway = runwayRef.current;
+    const pinningEnabled = window.matchMedia('(min-width: 1024px) and (min-height: 720px) and (prefers-reduced-motion: no-preference)').matches;
+    if (!runway || !pinningEnabled) {
+      handleStepChange(index);
+      return;
+    }
+
+    const rect = runway.getBoundingClientRect();
+    const documentTop = window.scrollY + rect.top;
+    const stickyHeight = window.innerHeight - STICKY_TOP;
+    const scrollDistance = Math.max(0, runway.offsetHeight - stickyHeight);
+    // Each stage starts at its own scroll marker; the final stage has room to breathe at the end.
+    const stageProgress = index / WORKBENCH_STAGES.length;
+    const target = documentTop - STICKY_TOP + scrollDistance * stageProgress;
+    window.scrollTo({ top: target, behavior: 'smooth' });
+    handleStepChange(index);
+  }, [handleStepChange]);
+
+  useEffect(() => {
+    const runway = runwayRef.current;
+    if (!runway) return;
+    const media = window.matchMedia('(min-width: 1024px) and (min-height: 720px) and (prefers-reduced-motion: no-preference)');
+    if (!media.matches) return;
+
+    let frame = 0;
+    const updateFromScroll = () => {
+      const rect = runway.getBoundingClientRect();
+      const documentTop = window.scrollY + rect.top;
+      const stickyHeight = window.innerHeight - STICKY_TOP;
+      const scrollDistance = Math.max(1, runway.offsetHeight - stickyHeight);
+      const start = documentTop - STICKY_TOP;
+      const progress = clamp((window.scrollY - start) / scrollDistance, 0, 0.9999);
+      const nextIndex = Math.min(WORKBENCH_STAGES.length - 1, Math.floor(progress * WORKBENCH_STAGES.length));
+      if (nextIndex !== activeStepRef.current) handleStepChange(nextIndex);
+    };
+    const requestUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        updateFromScroll();
+      });
+    };
+
+    updateFromScroll();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [handleStepChange]);
+
+  const previousStage = () => jumpToStage(activeStepIndex - 1);
+  const nextStage = () => jumpToStage(activeStepIndex + 1);
 
   return (
-    <section id="workbench" className="aero-gloss-surface py-24 bg-[#030305] border-b border-[#15151F] relative">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-[#B9B7FF] uppercase tracking-wider mb-2">
-              <span>03. FABRICATION WORKBENCH</span>
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-[#F4F2FF] font-display uppercase tracking-tight">
-              FROM CARDBOARD MOCKUP <br />
-              <span className="text-[#8888C8]">TO CARBON COMPOSITE AIRFRAME</span>
-            </h2>
-          </div>
-          <p className="text-sm text-[#8888C8] max-w-md font-mono">
-            Every competition airframe is proven first on the workbench with precision cardboard mockups to validate kinematics, wire channels, and center of gravity.
-          </p>
+    <section id="workbench" className="workbench-immersive-section" aria-labelledby="workbench-title">
+      <header className="workbench-intro-shell">
+        <div className="workbench-intro-topline">
+          <span><i /> 03 / FABRICATION WORKBENCH</span>
+          <span>INTERACTIVE ENGINEERING STUDY</span>
         </div>
+        <div className="workbench-intro-layout">
+          <h2 id="workbench-title">FROM CARDBOARD<br /><em>TO CARBON COMPOSITE AIRFRAME.</em></h2>
+          <p>Explore the existing build-sequence visualisation—from aerodynamic lofting and structural members to skinning and control-surface checks. The model is illustrative, not an exact CAD representation.</p>
+        </div>
+        <div className="workbench-intro-bottom"><span>FIVE STAGES / ONE CONTINUOUS STUDY</span><span><ArrowDown size={13} /> SCROLL TO MOVE THROUGH THE BUILD</span></div>
+      </header>
 
-        {/* 3-Column Interactive Workbench Architecture */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Build Sequence Navigator */}
-          <div className="lg:col-span-3 space-y-2">
-            <span className="text-xs font-mono text-[#8888C8] uppercase tracking-wider block mb-3">
-              Build Sequence Stages:
-            </span>
-
-            {WORKBENCH_STAGES.map((stage, idx) => (
-              <button
-                key={stage.step}
-                data-aero-tilt="soft"
-                aria-pressed={activeStepIndex === idx}
-                onClick={() => handleStepChange(idx)}
-                className={`aero-float-card aero-float-card--soft w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
-                  activeStepIndex === idx
-                    ? 'bg-[#090910] border-[#B9B7FF] text-[#F4F2FF]'
-                    : 'bg-[#030305] border-[#15151F] text-[#8888C8] hover:border-[#29263C] hover:text-[#D7D7E4]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-[#B9B7FF] font-semibold">
-                    STEP {stage.step}
-                  </span>
-                  {activeStepIndex === idx && (
-                    <span className="text-[10px] font-mono uppercase bg-[#15151F] text-[#B9B7FF] px-2 py-0.5 rounded">
-                      ACTIVE
-                    </span>
-                  )}
-                </div>
-                <h4 className="text-sm font-bold mt-1 text-[#F4F2FF] font-display">
-                  {stage.title}
-                </h4>
-                <p className="text-xs text-[#8888C8] mt-0.5 line-clamp-1">
-                  {stage.sub}
-                </p>
-              </button>
-            ))}
+      <div className="workbench-scroll-runway" ref={runwayRef}>
+        <div className="workbench-scroll-frame">
+          <div className="workbench-frame-topline">
+            <span className="workbench-live-indicator"><i /> WORKBENCH SESSION</span>
+            <span className="workbench-frame-note">SCROLL-DRIVEN ASSEMBLY <b>·</b> DIRECT INSPECTION ENABLED</span>
           </div>
 
-          {/* Center Column: stage-aware procedural 3D workbench with 2D blueprint fallback */}
-          <div className="lg:col-span-6 min-w-0">
-            <Workbench3DViewport
-              activeStepIndex={activeStepIndex}
-              selectedHotspot={selectedHotspot}
-              hotspots={WORKBENCH_HOTSPOTS}
-              onSelectHotspot={setSelectedHotspot}
-            />
-
-            {/* Selected component callout stays linked to both 2D and 3D hotspots */}
-            <div className="aero-float-card aero-float-card--subtle mt-4 rounded-lg border border-[#39284F] bg-[#0B0812]/95 p-4" data-aero-tilt="subtle">
-              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#C3ACFF]">
-                  {selectedHotspot.tag}
-                </span>
-                <span className="text-[10px] font-mono text-[#8F7CAD]">INSPECTED COMPONENT</span>
+          <div className="workbench-experience-grid">
+            <nav className="workbench-stage-rail" aria-label="Fabrication stages">
+              <div className="workbench-stage-rail__heading"><span>BUILD SEQUENCE</span><span>05</span></div>
+              <div className="workbench-stage-rail__items">
+                {WORKBENCH_STAGES.map((stage, index) => (
+                  <button
+                    key={stage.step}
+                    type="button"
+                    onClick={() => jumpToStage(index)}
+                    aria-current={activeStepIndex === index ? 'step' : undefined}
+                    className={`workbench-stage-link ${activeStepIndex === index ? 'is-active' : ''}`}
+                  >
+                    <span className="workbench-stage-link__number">{stage.step}</span>
+                    <span className="workbench-stage-link__copy"><strong>{stage.title}</strong><small>{stage.sub}</small></span>
+                    <span className="workbench-stage-link__mark" aria-hidden="true" />
+                  </button>
+                ))}
               </div>
-              <h4 className="font-display text-base font-bold text-[#F4F2FF]">
-                {selectedHotspot.title}
-              </h4>
-              <p className="mt-1 text-xs leading-relaxed text-[#D7D0E4]">
-                {selectedHotspot.detail}
-              </p>
+              <div className="workbench-stage-rail__foot"><Layers3 size={14} /><span>STRUCTURE / PROFILE / CONTROL</span></div>
+            </nav>
+
+            <div className="workbench-model-column">
+              <div className="workbench-model-heading">
+                <div><span>STAGE {String(activeStepIndex + 1).padStart(2, '0')} / 05</span><h3>{currentStage.title}</h3></div>
+                <span className="workbench-model-heading__status"><i /> 3D STUDY</span>
+              </div>
+              <Workbench3DViewport
+                activeStepIndex={activeStepIndex}
+                selectedHotspot={selectedHotspot}
+                hotspots={WORKBENCH_HOTSPOTS}
+                onSelectHotspot={setSelectedHotspot}
+              />
             </div>
+
+            <aside className="workbench-stage-analysis" aria-live="polite" aria-atomic="true">
+              <div className="workbench-stage-analysis__top"><span>STAGE ANALYSIS</span><span>0{activeStepIndex + 1}</span></div>
+              <div className="workbench-stage-analysis__main">
+                <span className="workbench-stage-analysis__eyebrow">CURRENT OPERATION</span>
+                <h4>{currentStage.title}</h4>
+                <p>{currentStage.description}</p>
+              </div>
+              <div className="workbench-stage-analysis__spec">
+                <div><span>MATERIAL SPECIFICATION</span><p>{currentStage.material}</p></div>
+                <div><span>WORKSHOP TOOLING</span><p>{currentStage.tooling}</p></div>
+              </div>
+              <div className="workbench-stage-analysis__takeaway"><span>ENGINEERING TAKEAWAY</span><p>{currentStage.engineeringTakeaway}</p></div>
+              <div className="workbench-stage-analysis__component"><span>SELECTED COMPONENT</span><strong>{selectedHotspot.title}</strong><p>{selectedHotspot.detail}</p></div>
+            </aside>
           </div>
 
-          {/* Right Column: Stage Engineering Details & Materials */}
-          <div className="aero-float-card aero-float-card--subtle lg:col-span-3 space-y-6 bg-[#090910] border border-[#15151F] p-6 rounded-xl" data-aero-tilt="subtle">
-            <div>
-              <span className="text-xs font-mono text-[#B9B7FF] uppercase tracking-wider block mb-1">
-                STAGE {currentStage.step} ANALYSIS
-              </span>
-              <h3 className="text-lg font-bold text-[#F4F2FF] font-display">
-                {currentStage.title}
-              </h3>
-              <p className="text-xs text-[#D7D7E4]/90 mt-2 leading-relaxed">
-                {currentStage.description}
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-4 border-t border-[#15151F] text-xs font-mono">
-              <div>
-                <span className="text-[#8888C8] block text-[11px] uppercase">Material Specification:</span>
-                <span className="text-[#F4F2FF] mt-0.5 block font-medium">{currentStage.material}</span>
-              </div>
-
-              <div>
-                <span className="text-[#8888C8] block text-[11px] uppercase">Workshop Tooling:</span>
-                <span className="text-[#F4F2FF] mt-0.5 block font-medium">{currentStage.tooling}</span>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[#15151F]">
-              <span className="text-[11px] font-mono text-[#B9B7FF] uppercase tracking-wider block mb-1">
-                ENGINEERING TAKEAWAY
-              </span>
-              <p className="text-xs text-[#8888C8] leading-relaxed">
-                {currentStage.engineeringTakeaway}
-              </p>
+          <div className="workbench-frame-footer">
+            <div className="workbench-frame-footer__step"><span>PROGRESS</span><strong>0{activeStepIndex + 1}<i> / 05</i></strong></div>
+            <div className="workbench-progress-track" aria-hidden="true"><span style={{ width: `${((activeStepIndex + 1) / WORKBENCH_STAGES.length) * 100}%` }} /></div>
+            <div className="workbench-frame-footer__controls">
+              <button type="button" onClick={previousStage} disabled={activeStepIndex === 0} aria-label="Previous fabrication stage"><ArrowLeft size={15} /></button>
+              <button type="button" onClick={nextStage} disabled={activeStepIndex === WORKBENCH_STAGES.length - 1} aria-label="Next fabrication stage"><ArrowRight size={15} /></button>
             </div>
           </div>
         </div>
